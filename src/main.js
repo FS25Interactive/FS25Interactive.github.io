@@ -8,7 +8,8 @@ const maps = [
     fields: "75",
     kind: "Modded map",
     url: "https://keiranpoly2611.github.io/Kinlaig-Map-FS25/",
-    thumbGradient: "linear-gradient(135deg, #14532d, #166534, #1d9e75)"
+    thumbGradient: "linear-gradient(135deg, #14532d, #166534, #1d9e75)",
+    cover: "/covers/kinlaig.jpg"
   },
   {
     name: "Zielonka",
@@ -16,7 +17,8 @@ const maps = [
     fields: "109",
     kind: "Official map",
     url: "https://keiranpoly2611.github.io/Zielonka-Map-FS25/",
-    thumbGradient: "linear-gradient(135deg, #1e3a5f, #1d6fa5, #38bdf8)"
+    thumbGradient: "linear-gradient(135deg, #1e3a5f, #1d6fa5, #38bdf8)",
+    cover: "/covers/zielonka.jpg"
   },
   {
     name: "Hutan Pantai",
@@ -24,7 +26,8 @@ const maps = [
     fields: "80",
     kind: "Official map",
     url: "https://keiranpoly2611.github.io/HutanPantai-Map-FS25/",
-    thumbGradient: "linear-gradient(135deg, #164e63, #0e7490, #2dd4bf)"
+    thumbGradient: "linear-gradient(135deg, #164e63, #0e7490, #2dd4bf)",
+    cover: "/covers/hutanpantai.jpg"
   },
   {
     name: "Riverbend Springs",
@@ -32,7 +35,8 @@ const maps = [
     fields: "93",
     kind: "Official map",
     url: "https://keiranpoly2611.github.io/RiverbendSprings-Map-FS25/",
-    thumbGradient: "linear-gradient(135deg, #713f12, #a16207, #facc15)"
+    thumbGradient: "linear-gradient(135deg, #713f12, #a16207, #facc15)",
+    cover: "/covers/riverbendsprings.jpg"
   }
 ];
 
@@ -40,7 +44,7 @@ const grid = document.getElementById('mapGrid');
 grid.innerHTML = maps.map(m => `
   <a class="map-card card bg-base-200 border border-base-300 shadow-lg hover:border-primary/60 hover:-translate-y-0.5 transition-all no-underline text-inherit" href="${m.url}">
     <div class="card-body p-5">
-      <div class="h-28 rounded-xl mb-4 relative overflow-hidden" style="background-image:${m.thumbGradient}">
+      <div class="h-28 rounded-xl mb-4 relative overflow-hidden" style="${m.cover ? `background-image:url('${m.cover}');background-size:cover;background-position:center` : `background-image:${m.thumbGradient}`}">
         <div class="absolute inset-x-0 bottom-0 h-2/3" style="background:linear-gradient(180deg, rgba(11,15,20,0) 40%, rgba(11,15,20,.75))"></div>
       </div>
       <h2 class="text-lg font-semibold mb-1">${m.name}</h2>
