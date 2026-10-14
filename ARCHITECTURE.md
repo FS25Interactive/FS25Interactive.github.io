@@ -12,7 +12,7 @@ This is a reference for anyone (including future-you) picking up this codebase. 
 | `HutanPantai-Map-FS25` | `hutanpantai-map` | https://keiranpoly2611.github.io/HutanPantai-Map-FS25/ |
 | `RiverbendSprings-Map-FS25` | `riverbendsprings-map` | https://keiranpoly2611.github.io/RiverbendSprings-Map-FS25/ |
 
-All 5 repos are independent — no shared build step, no shared package, no monorepo tooling. Each map is a single self-contained `index.html` (map image embedded as base64 WebP, no external JS/CSS dependencies except the Tabler Icons CDN stylesheet). The hub is a separate static page that only links out to the maps; it shares no code or save data with them.
+All 5 repos are independent — no shared package, no monorepo tooling. Each repo is its own **Vite + Tailwind 4 + daisyUI** project (`npm ci && npm run build`, output in `dist/`), deployed to GitHub Pages by `.github/workflows/deploy.yml` on every push to `main`. Each map's `vite.config.js` sets `base` to `/<RepoName>/` (project site); the hub uses `base: '/'` (org root site). The map image lives in `public/<map>.webp`. The Tabler Icons stylesheet is still loaded from a CDN. The hub only links out to the maps; it shares no code or save data with them.
 
 `fs25-maps-hub`'s git remotes:
 - `origin` → `https://github.com/FS25Interactive/FS25Interactive.github.io.git` — the real, current hub. Push here.
@@ -23,7 +23,7 @@ All 5 repos are independent — no shared build step, no shared package, no mono
 One shared Supabase project backs Cloud Sync for all 4 maps — no per-map backend to maintain.
 
 - Project ref: `aicyvaqkzqlijffqihzd`, URL: `https://aicyvaqkzqlijffqihzd.supabase.co`
-- Anon/publishable key is hardcoded in every map's `index.html` as `SUPABASE_ANON_KEY` (safe to be public — it's gated by RLS + the RPCs below, not a secret)
+- Anon/publishable key is hardcoded in every map's `SUPABASE_ANON_KEY` in `src/features/cloud-sync/index.js` (safe to be public — it's gated by RLS + the RPCs below, not a secret)
 
 **Schema** (`supabase_setup.sql` for fresh installs; `supabase_migration_*.sql` files are the incremental deltas actually applied to the live project, in order: `supabase_migration_rooms.sql` → `supabase_migration_create_room.sql` → `supabase_migration_map_terminology.sql`):
 
@@ -49,11 +49,11 @@ Room creation is deliberately its own RPC, separate from saving — an earlier v
 
 **Default rooms:** each map originally had one `room_code = ''` row seeded with a shared password (`Bubblegum1`). Keiran later renamed his own via a manual `update ... set room_code = 'PolyOffice' where room_code = ''` on all 4 maps — this **moves** the row, so `room_code=''` no longer resolves on any of the 4 maps now. Anyone still leaving Map code blank needs to type `PolyOffice`. Public visitors create their own room via the "Create a new map" UI, independent of Keiran's.
 
-## Client-side structure (per map's `index.html`)
+## Client-side structure (per map's `src/`)
 
 Every map is a copy of the same template (originally Kinlaig's, later maps copied from whichever was most current). Only these differ between maps:
-- `markersData` (field/land coordinates, digitized per-map — see "Adding a new map" below)
-- The embedded base64 map image
+- `markersData` in `src/core/field-data.js` (field/land coordinates, digitized per-map — see "Adding a new map" below)
+- The map image in `public/<map>.webp`
 - localStorage key prefix (`kinlaig_fs25_*`, `zielonka_fs25_*`, etc.)
 - `CLOUD_MAP_ID` constant
 - Page title/heading/share-link text
@@ -79,9 +79,9 @@ A `migrateLegacyLocalSave()` IIFE runs once on page load, copying any pre-existi
 
 **Network:** `supabaseRpc(fn, body)` is a thin wrapper posting to `${SUPABASE_URL}/rest/v1/rpc/${fn}` with `apikey`/`Authorization: Bearer` headers set to the anon key. Plain `fetch()`, no SDK — Supabase's REST gateway has proper CORS, unlike the old Google Apps Script backend this replaced (which needed a JSONP + hidden-iframe-POST fallback; none of that exists anymore).
 
-## Hub (`fs25-maps-hub/index.html`)
+## Hub (`index.html` + `src/main.js`)
 
-A card grid driven by a `maps` array in an inline `<script>` — each entry is `{name, desc, fields, kind, url, thumbGradient}`. Adding a map is just adding an array entry; the grid renders itself. Grid CSS uses **explicit breakpoints** (1 column <560px, 2 columns 560–899px, 4 columns ≥900px) rather than fluid `auto-fit`, specifically so 4 cards are always 2-per-row or a full row — fluid sizing would put 3 per row at some widths, orphaning the 4th.
+A card grid driven by a `maps` array in `src/main.js` — each entry is `{name, desc, fields, kind, url, thumbGradient}`. Adding a map is just adding an array entry; the grid renders itself. Grid CSS uses **explicit breakpoints** (1 column <560px, 2 columns 560–899px, 4 columns ≥900px) rather than fluid `auto-fit`, specifically so 4 cards are always 2-per-row or a full row — fluid sizing would put 3 per row at some widths, orphaning the 4th.
 
 ## Adding a 5th map — the recipe
 
@@ -91,8 +91,8 @@ A card grid driven by a `maps` array in an inline `<script>` — each entry is `
 4. Generate a contact sheet of candidate crops, read each number visually (vision, not OCR).
 5. Programmatic completeness check (all numbers 1..N present exactly once) — flags misses immediately.
 6. **Also** render a full-image overlay (colored circle per marker) and visually scan it — completeness alone doesn't catch a coordinate that landed on the wrong badge. Watch for contours broken by roads/railways running through a badge; those need a manual zoomed pixel read.
-7. Copy the most-current existing map's `index.html` as the template.
-8. Replace: `markersData`, embedded image, localStorage prefix, title/heading/share-link text, `CLOUD_MAP_ID` (new unique value).
+7. Copy the most-current existing map repo (`index.html`, `src/`, `public/`, `vite.config.js`, `.github/`) as the template.
+8. Replace: `markersData` (`src/core/field-data.js`), `public/<map>.webp`, `vite.config.js` `base`, localStorage prefix, title/heading/share-link text, `CLOUD_MAP_ID` (new unique value).
 9. Standalone GitHub repo + its own Pages site (never a subpath of another map).
 10. Add the `hubLink` "← All maps" pill pointing at `https://fs25interactive.github.io/`.
 11. In Supabase SQL editor: `insert into map_saves (map_id, room_code, access_code) values ('newmapid', '', 'Bubblegum1');` (or whatever default password makes sense).
@@ -104,3 +104,10 @@ A card grid driven by a `maps` array in an inline `<script>` — each entry is `
 - Brand-new local clones have no repo-level `git config user.name`/`user.email` on this machine (no global config set) — set both locally before the first commit in a fresh clone.
 - GitHub Pages user/org "clean URL" sites require the repo name to **exactly** match `accountname.github.io` or `orgname.github.io`; there is no way to rename this later short of moving the repo to a differently-named account/org.
 - Supabase's dashboard has changed where API keys are labeled/located at least once (`anon public` JWT → `sb_publishable_...` under a differently-named settings page) — if guiding a similar setup again, don't assume the old labels; ask for a screenshot.
+
+
+## Code layout (per map)
+
+`src/main.js` wires the feature slices: `core/` (dom, field-data, plan-entries, store) and `features/` (app-shell, cloud-sync, field-editor, guide, map-modes, map-view, owners, search), plus `data/reference-tables.js` and `styles/main.css`. Local dev: `npm run dev` (port 5173). The old single-file `index.html` versions (pre-July 2026) are in git history.
+
+**Local sync gotcha:** OneDrive can produce `index-<Machine>.html` conflict copies when two machines edit the same repo; delete them rather than merging, and always `git pull` before editing.
